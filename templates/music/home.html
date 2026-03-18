@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Home - MusicStream{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Welcome Header -->
+    <div class="section-header">
+        <h2>Good {{ time_of_day }}, {{ user.username|default:user.email|default:"Music Lover" }}</h2>
+    </div>
+    
+    <!-- Quick Picks Grid -->
+    <div class="card-grid" id="quickPicks">
+        <!-- Quick picks will be loaded here -->
+    </div>
+    
+    <!-- Trending Section -->
+    <div class="section-header">
+        <h2>Trending Now</h2>
+        <a href="#" class="see-all-btn" onclick="loadTrending()">See All</a>
+    </div>
+    
+    <div class="card-grid" id="trendingSection">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+        </div>
+    </div>
+    
+    <!-- Recommended Sections -->
+    <div class="section-header">
+        <h2>Made For You</h2>
+    </div>
+    
+    <div class="card-grid" id="recommendedSection">
+        <!-- Recommended content will be loaded here -->
+    </div>
+</div>
+
+<!-- Song Detail Modal -->
+<div class="modal fade" id="songModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <img src="" alt="" id="modalThumbnail" class="img-fluid rounded">
+                    </div>
+                    <div class="col-md-8">
+                        <h3 id="modalTitle"></h3>
+                        <p class="text-secondary" id="modalArtist"></p>
+                        <div class="mt-4">
+                            <button class="btn btn-primary btn-lg" id="modalPlayBtn">
+                                <i class="bi bi-play-fill"></i> Play
+                            </button>
+                            <button class="btn btn-outline-light btn-lg" id="modalAddToPlaylistBtn">
+                                <i class="bi bi-plus"></i> Add to Playlist
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Get time of day
+function getTimeOfDay() {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'morning';
+    if (hour < 18) return 'afternoon';
+    return 'evening';
+}
+
+document.querySelector('.section-header h2').textContent = 
+    `Good ${getTimeOfDay()}, {{ user.username|default:user.email }}`;
+
+// Load trending songs
+async function loadTrending() {
+    try {
+        const response = await fetch('/api/trending/');
+        const data = await response.json();
+        
+        if (data.trending && data.trending.length > 0) {
+            const container = document.getElementById('trendingSection');
+            container.innerHTML = '';
+            
+            data.trending.forEach(song => {
+                const card = createSongCard(song);
+                container.appendChild(card);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading trending:', error);
+    }
+}
+
+// Load home content
+async function loadHomeContent() {
+    try {
+        const response = await fetch('/api/home-content/');
+        const data = await response.json();
+        
+        if (data.content && data.content.length > 0) {
+            const container = document.getElementById('recommendedSection');
+            container.innerHTML = '';
+            
+            data.content.forEach(section => {
+                if (section.contents && section.contents.length > 0) {
+                    section.contents.forEach(item => {
+                        if (item.type === 'song' || item.video_id) {
+                            const card = createSongCard(item);
+                            container.appendChild(card);
+                        }
+                    });
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error loading home content:', error);
+    }
+}
+
+// Create song card element
+function createSongCard(song) {
+    const card = document.createElement('div');
+    card.className = 'music-card';
+    
+    const thumbnail = song.thumbnail || 'https://via.placeholder.com/180';
+    const title = song.title || 'Unknown';
+    const artist = song.artist || 'Unknown Artist';
+    
+    card.innerHTML = `
+        <img src="${thumbnail}" alt="${title}">
+        <div class="play-button-overlay">
+            <i class="bi bi-play-fill" style="font-size: 24px; color: white;"></i>
+        </div>
+        <h5>${title}</h5>
+        <p>${artist}</p>
+    `;
+    
+    card.addEventListener('click', () => {
+        playSong(song);
+    });
+    
+    return card;
+}
+
+// Play song function
+function playSong(song) {
+    if (window.musicPlayer) {
+        window.musicPlayer.loadAndPlay(song);
+        
+        // Update recently played
+        fetch('/api/recently-played/add/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                song_id: song.id || song.video_id,
+                title: song.title,
+                artist: song.artist,
+                album: song.album || '',
+                duration: song.duration || '',
+                thumbnail: song.thumbnail
+            })
+        }).catch(err => console.error('Error updating recently played:', err));
+    }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    loadTrending();
+    loadHomeContent();
+    loadUserPlaylists();
+});
+</script>
+{% endblock %}

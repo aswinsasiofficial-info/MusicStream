@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Your Library - MusicStream{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="section-header">
+        <h2>Your Library</h2>
+    </div>
+    
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4" id="libraryTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#playlists-tab" type="button">
+                Playlists
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#favorites-tab" type="button">
+                Favorites
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#recent-tab" type="button">
+                Recently Played
+            </button>
+        </li>
+    </ul>
+    
+    <!-- Tab Content -->
+    <div class="tab-content" id="libraryTabContent">
+        <!-- Playlists Tab -->
+        <div class="tab-pane fade show active" id="playlists-tab" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4>Your Playlists</h4>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createPlaylistModal">
+                    <i class="bi bi-plus-square"></i> Create Playlist
+                </button>
+            </div>
+            
+            <div class="card-grid" id="myPlaylists">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Favorites Tab -->
+        <div class="tab-pane fade" id="favorites-tab" role="tabpanel">
+            <h4 class="mb-4">Liked Songs</h4>
+            <div class="card-grid" id="favoritesList">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recently Played Tab -->
+        <div class="tab-pane fade" id="recent-tab" role="tabpanel">
+            <h4 class="mb-4">Recently Played</h4>
+            <div class="card-grid" id="recentlyPlayed">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add to Playlist Modal -->
+<div class="modal fade" id="addToPlaylistModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">Add to Playlist</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="playlistOptions">
+                <!-- Playlist options will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentSongToAdd = null;
+
+// Load user playlists
+async function loadUserPlaylists() {
+    try {
+        const response = await fetch('/api/playlists/');
+        const data = await response.json();
+        
+        const container = document.getElementById('myPlaylists');
+        if (data.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-secondary mt-5">
+                    <p>No playlists yet. Create your first playlist!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = '';
+        data.forEach(playlist => {
+            const card = document.createElement('div');
+            card.className = 'music-card';
+            card.innerHTML = `
+                <img src="${playlist.thumbnail || 'https://via.placeholder.com/180'}" alt="${playlist.name}">
+                <h5>${playlist.name}</h5>
+                <p>${playlist.description || playlist.song_count || 0} songs</p>
+            `;
+            card.addEventListener('click', () => {
+                window.location.href = `/playlist/${playlist.id}/`;
+            });
+            container.appendChild(card);
+        });
+    } catch (error) {
+        console.error('Error loading playlists:', error);
+    }
+}
+
+// Load favorites
+async function loadFavorites() {
+    try {
+        const response = await fetch('/api/favorites/');
+        const data = await response.json();
+        
+        const container = document.getElementById('favoritesList');
+        container.innerHTML = '';
+        
+        if (data.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-secondary mt-5">
+                    <p>No favorite songs yet. Start liking songs!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        data.forEach(song => {
+            const card = createSongCard(song);
+            container.appendChild(card);
+        });
+    } catch (error) {
+        console.error('Error loading favorites:', error);
+    }
+}
+
+// Load recently played
+async function loadRecentlyPlayed() {
+    try {
+        const response = await fetch('/api/recently-played/');
+        const data = await response.json();
+        
+        const container = document.getElementById('recentlyPlayed');
+        container.innerHTML = '';
+        
+        if (data.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-secondary mt-5">
+                    <p>No recently played songs. Start listening!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        data.forEach(song => {
+            const card = createSongCard(song);
+            container.appendChild(card);
+        });
+    } catch (error) {
+        console.error('Error loading recently played:', error);
+    }
+}
+
+// Create song card
+function createSongCard(song) {
+    const card = document.createElement('div');
+    card.className = 'music-card';
+    
+    const thumbnail = song.thumbnail || 'https://via.placeholder.com/180';
+    const title = song.title || 'Unknown';
+    const artist = song.artist || 'Unknown Artist';
+    
+    card.innerHTML = `
+        <img src="${thumbnail}" alt="${title}">
+        <div class="play-button-overlay">
+            <i class="bi bi-play-fill" style="font-size: 24px; color: white;"></i>
+        </div>
+        <h5>${title}</h5>
+        <p>${artist}</p>
+    `;
+    
+    card.addEventListener('click', () => playSong(song));
+    
+    return card;
+}
+
+// Play song
+function playSong(song) {
+    if (window.musicPlayer) {
+        window.musicPlayer.loadAndPlay(song);
+    }
+}
+
+// Initialize on tab switch
+document.addEventListener('DOMContentLoaded', function() {
+    loadUserPlaylists();
+    
+    // Load other tabs when clicked
+    document.querySelector('[data-bs-target="#favorites-tab"]').addEventListener('shown.bs.tab', loadFavorites);
+    document.querySelector('[data-bs-target="#recent-tab"]').addEventListener('shown.bs.tab', loadRecentlyPlayed);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Search - MusicStream{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Search Bar -->
+    <div class="search-container position-relative">
+        <input type="text" 
+               class="search-input" 
+               id="searchInput" 
+               placeholder="What do you want to listen to?"
+               autocomplete="off">
+        <i class="bi bi-search search-icon"></i>
+    </div>
+    
+    <!-- Search Filters -->
+    <div class="mb-4">
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-light active" data-filter="all">All</button>
+            <button type="button" class="btn btn-outline-light" data-filter="songs">Songs</button>
+            <button type="button" class="btn btn-outline-light" data-filter="albums">Albums</button>
+            <button type="button" class="btn btn-outline-light" data-filter="artists">Artists</button>
+            <button type="button" class="btn btn-outline-light" data-filter="playlists">Playlists</button>
+        </div>
+    </div>
+    
+    <!-- Search Results -->
+    <div id="searchResults">
+        <div class="text-center text-secondary mt-5">
+            <i class="bi bi-music-note-beamed" style="font-size: 48px;"></i>
+            <h4 class="mt-3">Search for songs, albums, artists, and playlists</h4>
+            <p>Type in the search bar above to find music from YouTube Music</p>
+        </div>
+    </div>
+    
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+        <div class="spinner"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentFilter = 'all';
+let debounceTimer;
+
+// Filter buttons
+document.querySelectorAll('[data-filter]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        currentFilter = this.dataset.filter;
+        
+        // Re-run search with new filter
+        const query = document.getElementById('searchInput').value.trim();
+        if (query) {
+            performSearch(query);
+        }
+    });
+});
+
+// Search input handler with debouncing
+document.getElementById('searchInput').addEventListener('input', function(e) {
+    clearTimeout(debounceTimer);
+    const query = e.target.value.trim();
+    
+    if (query.length > 0) {
+        debounceTimer = setTimeout(() => {
+            performSearch(query);
+        }, 500); // 500ms debounce
+    } else {
+        clearResults();
+    }
+});
+
+// Perform search
+async function performSearch(query) {
+    try {
+        showLoading();
+        
+        const filter = currentFilter === 'all' ? 'songs' : currentFilter;
+        const response = await fetch(`/api/search/?q=${encodeURIComponent(query)}&type=${filter}&limit=24`);
+        const data = await response.json();
+        
+        hideLoading();
+        
+        if (data.results && data.results.length > 0) {
+            displayResults(data.results, query);
+        } else {
+            showNoResults(query);
+        }
+    } catch (error) {
+        console.error('Error searching:', error);
+        hideLoading();
+        showError();
+    }
+}
+
+// Display search results
+function displayResults(results, query) {
+    const container = document.getElementById('searchResults');
+    container.innerHTML = '';
+    
+    // Group by type if showing "all"
+    if (currentFilter === 'all') {
+        const grouped = {};
+        results.forEach(item => {
+            const type = item.type || 'song';
+            if (!grouped[type]) grouped[type] = [];
+            grouped[type].push(item);
+        });
+        
+        for (const [type, items] of Object.entries(grouped)) {
+            const section = createSection(type.charAt(0).toUpperCase() + type.slice(1), items);
+            container.appendChild(section);
+        }
+    } else {
+        const section = createSection(`Results for "${query}"`, results);
+        container.appendChild(section);
+    }
+}
+
+// Create section
+function createSection(title, items) {
+    const section = document.createElement('div');
+    section.className = 'mb-5';
+    
+    const header = document.createElement('h3');
+    header.className = 'mb-3';
+    header.textContent = title;
+    section.appendChild(header);
+    
+    const grid = document.createElement('div');
+    grid.className = 'card-grid';
+    
+    items.forEach(item => {
+        const card = createResultCard(item);
+        grid.appendChild(card);
+    });
+    
+    section.appendChild(grid);
+    return section;
+}
+
+// Create result card based on type
+function createResultCard(item) {
+    const card = document.createElement('div');
+    card.className = 'music-card';
+    
+    const thumbnail = item.thumbnail || item.thumbnails?.[0]?.url || 'https://via.placeholder.com/180';
+    const title = item.title || item.name || 'Unknown';
+    const subtitle = getSubtitle(item);
+    
+    card.innerHTML = `
+        <img src="${thumbnail}" alt="${title}">
+        ${item.video_id || item.type === 'song' ? `
+        <div class="play-button-overlay">
+            <i class="bi bi-play-fill" style="font-size: 24px; color: white;"></i>
+        </div>
+        ` : ''}
+        <h5>${title}</h5>
+        <p>${subtitle}</p>
+    `;
+    
+    if (item.video_id || item.type === 'song') {
+        card.addEventListener('click', () => playSong(item));
+    }
+    
+    return card;
+}
+
+// Get subtitle based on type
+function getSubtitle(item) {
+    if (item.artist) return item.artist;
+    if (item.author) return item.author;
+    if (item.subscribers) return item.subscribers;
+    if (item.year) return item.year;
+    return '';
+}
+
+// Clear results
+function clearResults() {
+    document.getElementById('searchResults').innerHTML = `
+        <div class="text-center text-secondary mt-5">
+            <i class="bi bi-music-note-beamed" style="font-size: 48px;"></i>
+            <h4 class="mt-3">Search for songs, albums, artists, and playlists</h4>
+            <p>Type in the search bar above to find music from YouTube Music</p>
+        </div>
+    `;
+}
+
+// Show loading
+function showLoading() {
+    document.getElementById('loadingSpinner').style.display = 'flex';
+    document.getElementById('searchResults').innerHTML = '';
+}
+
+// Hide loading
+function hideLoading() {
+    document.getElementById('loadingSpinner').style.display = 'none';
+}
+
+// Show no results
+function showNoResults(query) {
+    document.getElementById('searchResults').innerHTML = `
+        <div class="text-center text-secondary mt-5">
+            <i class="bi bi-emoji-frown" style="font-size: 48px;"></i>
+            <h4 class="mt-3">No results found for "${query}"</h4>
+            <p>Try different keywords or check your spelling</p>
+        </div>
+    `;
+}
+
+// Show error
+function showError() {
+    document.getElementById('searchResults').innerHTML = `
+        <div class="text-center text-danger mt-5">
+            <i class="bi bi-exclamation-triangle" style="font-size: 48px;"></i>
+            <h4 class="mt-3">Something went wrong</h4>
+            <p>Please try again later</p>
+        </div>
+    `;
+}
+
+// Play song
+function playSong(song) {
+    if (window.musicPlayer) {
+        window.musicPlayer.loadAndPlay(song);
+        
+        // Update recently played
+        fetch('/api/recently-played/add/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                song_id: song.id || song.video_id,
+                title: song.title,
+                artist: song.artist,
+                album: song.album || '',
+                duration: song.duration || '',
+                thumbnail: song.thumbnail
+            })
+        }).catch(err => console.error('Error updating recently played:', err));
+    }
+}
+</script>
+{% endblock %}

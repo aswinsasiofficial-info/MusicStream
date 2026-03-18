@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Register - MusicStream{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <div class="card bg-dark text-white p-5" style="max-width: 450px; width: 100%; border-radius: 12px;">
+        <div class="text-center mb-4">
+            <h1 class="mb-3"><i class="bi bi-soundwave text-accent"></i> MusicStream</h1>
+            <h3>Create your account</h3>
+        </div>
+        
+        <form method="post" action="{% url 'register' %}">
+            {% csrf_token %}
+            
+            {% if form.errors %}
+            <div class="alert alert-danger">
+                Please correct the errors below.
+                {{ form.errors }}
+            </div>
+            {% endif %}
+            
+            <div class="mb-3">
+                <label for="id_email" class="form-label">Email address</label>
+                <input type="email" 
+                       class="form-control bg-dark text-white border-secondary" 
+                       id="id_email" 
+                       name="email" 
+                       required 
+                       autofocus>
+            </div>
+            
+            <div class="mb-3">
+                <label for="id_username" class="form-label">Username (optional)</label>
+                <input type="text" 
+                       class="form-control bg-dark text-white border-secondary" 
+                       id="id_username" 
+                       name="username">
+            </div>
+            
+            <div class="mb-3">
+                <label for="id_password1" class="form-label">Password</label>
+                <input type="password" 
+                       class="form-control bg-dark text-white border-secondary" 
+                       id="id_password1" 
+                       name="password1" 
+                       required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="id_password2" class="form-label">Confirm Password</label>
+                <input type="password" 
+                       class="form-control bg-dark text-white border-secondary" 
+                       id="id_password2" 
+                       name="password2" 
+                       required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block w-100 py-3 mb-3">
+                Sign Up
+            </button>
+            
+            <div class="text-center mt-4">
+                <p class="mb-0">Already have an account? 
+                    <a href="{% url 'login' %}" class="text-accent">Log in</a>
+                </p>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

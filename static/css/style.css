@@ -1,5 +1,5 @@
 /* MusicStream - Spotify-inspired Dark Theme */
-
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
 :root {
     --bg-primary: #121212;
     --bg-secondary: #181818;
@@ -21,7 +21,7 @@
 }
 
 body {
-    font-family: 'Circular', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'DM Sans', sans-serif;
     background-color: var(--bg-primary);
     color: var(--text-primary);
     overflow: hidden;

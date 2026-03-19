@@ -21,7 +21,7 @@ def home(request):
 
 
 def search(request):
-    """Search page view"""
+    """Search page view - Jamendo"""
     return render(request, 'music/search.html')
 
 
@@ -33,56 +33,43 @@ def library(request):
 @require_http_methods(["GET"])
 @cache_page(60 * 10)  # Cache for 10 minutes
 def search_api(request):
-    """Search API endpoint"""
+    """Search API endpoint - Jamendo"""
     query = request.GET.get('q', '')
-    filter_type = request.GET.get('type', 'songs')
     limit = int(request.GET.get('limit', '20'))
     
     if not query:
         return JsonResponse({'error': 'No query provided'}, status=400)
     
-    from music.services import yt_music
+    from music.services.jamendo import jamendo
     
     try:
-        results = yt_music.search(query, filter_type=filter_type, limit=limit)
+        results = jamendo.search_tracks(query, limit=limit)
         return JsonResponse({'results': results})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
 
 @require_http_methods(["GET"])
-def trending_api(request):
-    """Trending songs API endpoint"""
-    from music.services import yt_music
+def popular_api(request):
+    """Popular/trending songs API endpoint - Jamendo"""
+    from music.services.jamendo import jamendo
     
     try:
-        trending = yt_music.get_trending()
-        return JsonResponse({'trending': trending})
+        popular = jamendo.get_popular_tracks(limit=20)
+        return JsonResponse({'popular': popular})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
 
 @require_http_methods(["GET"])
-def home_content_api(request):
-    """Home page content API"""
-    from music.services import yt_music
+def track_detail_api(request, track_id):
+    """Get detailed track information - Jamendo"""
+    from music.services.jamendo import jamendo
     
     try:
-        content = yt_music.get_home()
-        return JsonResponse({'content': content})
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-
-@require_http_methods(["GET"])
-def song_detail_api(request, song_id):
-    """Get detailed song information"""
-    from music.services import yt_music
-    
-    try:
-        song = yt_music.get_song(song_id)
-        if song:
-            return JsonResponse(song)
-        return JsonResponse({'error': 'Song not found'}, status=404)
+        track = jamendo.get_track_by_id(track_id)
+        if track:
+            return JsonResponse(track)
+        return JsonResponse({'error': 'Track not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

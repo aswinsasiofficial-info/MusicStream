@@ -81,23 +81,41 @@ function getTimeOfDay() {
 document.querySelector('.section-header h2').textContent = 
     `Good ${getTimeOfDay()}, {{ user.username|default:user.email }}`;
 
-// Load trending songs
+<!-- Load trending songs -->
 async function loadTrending() {
     try {
-        const response = await fetch('/api/trending/');
+        const response = await fetch('/api/popular/');
         const data = await response.json();
         
-        if (data.trending && data.trending.length > 0) {
+        if (data.popular && data.popular.length > 0) {
             const container = document.getElementById('trendingSection');
             container.innerHTML = '';
             
-            data.trending.forEach(song => {
+            data.popular.forEach(song => {
                 const card = createSongCard(song);
                 container.appendChild(card);
             });
+        } else {
+            // Show message if no popular tracks
+            const container = document.getElementById('trendingSection');
+            container.innerHTML = `
+                <div class="text-center text-secondary mt-5">
+                    <i class="bi bi-music-note" style="font-size: 48px;"></i>
+                    <h4 class="mt-3">Popular tracks from Jamendo</h4>
+                    <p>Search for music to get started</p>
+                </div>
+            `;
         }
     } catch (error) {
-        console.error('Error loading trending:', error);
+        console.error('Error loading popular:', error);
+        const container = document.getElementById('trendingSection');
+        container.innerHTML = `
+            <div class="text-center text-danger mt-5">
+                <i class="bi bi-exclamation-triangle" style="font-size: 48px;"></i>
+                <h4 class="mt-3">Unable to load popular tracks</h4>
+                <p>Please check your Jamendo API configuration</p>
+            </div>
+        `;
     }
 }
 

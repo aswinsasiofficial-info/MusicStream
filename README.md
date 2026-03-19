@@ -1,8 +1,8 @@
 # MusicStream - Full-Stack Music Streaming Platform
 
-A Spotify-inspired music streaming web application built with Django and Bootstrap 5, integrating YouTube Music API for music discovery.
+A Spotify-inspired music streaming web application built with Django and Bootstrap 5, integrating **Jamendo API** for free music discovery from independent artists.
 
-![MusicStream](https://img.shields.io/badge/version-1.0.0-green.svg)
+![MusicStream](https://img.shields.io/badge/version-2.0.0-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 ## 🎵 Features
@@ -15,13 +15,15 @@ A Spotify-inspired music streaming web application built with Django and Bootstr
   - User profiles with avatars and bios
 
 - **Music Browsing**
-  - Search songs, albums, artists using ytmusicapi
-  - Trending/recommended sections
-  - Rich metadata with thumbnails
+  - Search songs using **Jamendo API** (free, legal music)
+  - Popular/trending sections
+  - Rich metadata with thumbnails and duration
   - Lazy loading for performance
 
-- **Music Player**
+- **Music Player** ⭐ NEW!
   - Persistent bottom player (Spotify-style)
+  - **Direct MP3 streaming from Jamendo**
+  - HTML5 audio playback
   - Play, pause, next, previous controls
   - Seek bar and volume control
   - Shuffle and repeat modes
@@ -43,17 +45,17 @@ A Spotify-inspired music streaming web application built with Django and Bootstr
 - **Bonus Features**
   - Recently played tracking
   - Favorite/liked songs
-  - Infinite scroll support
+  - AJAX-based search (no page reload)
+  - Loading spinners
   - Debounced search input
-  - AJAX/Fetch for dynamic updates
 
 ## 🛠️ Tech Stack
 
 ### Backend
 - **Django 5.0.6** - Web framework
+- **Requests 2.31.0** - HTTP library for API calls
+- **Jamendo API v3.0** - Free music streaming integration
 - **Django REST Framework 3.15.1** - API development
-- **ytmusicapi 1.3.2** - YouTube Music integration
-- **django-allauth 0.63.6** - Social authentication
 - **SQLite** - Database (default)
 
 ### Frontend
@@ -61,11 +63,13 @@ A Spotify-inspired music streaming web application built with Django and Bootstr
 - **Bootstrap 5.3.0** - Responsive layout
 - **Bootstrap Icons** - Icon library
 - **Vanilla JS** - No heavy frameworks
+- **HTML5 Audio API** - Music playback
 
 ## 📋 Prerequisites
 
 - Python 3.11 or higher
 - pip (Python package manager)
+- Jamendo API Client ID (FREE - get from https://devportal.jamendo.com/)
 - Modern web browser (Chrome, Firefox, Safari, Edge)
 
 ## 🚀 Installation & Setup
@@ -74,7 +78,7 @@ A Spotify-inspired music streaming web application built with Django and Bootstr
 
 **Windows:**
 ```bash
-setup.bat
+run_jamendo.bat
 ```
 
 **PowerShell:**
@@ -88,23 +92,38 @@ setup.bat
 
 ```bash
 cd "c:\Users\sasii\Desktop\Music Platform\music_Settings"
+pip install requests
 pip install -r requirements.txt
 ```
 
 This will install:
 - Django 5.0.6+
 - Django REST Framework
-- ytmusicapi (YouTube Music integration)
+- Requests (HTTP library for Jamendo API)
 - Pillow (image processing)
-- requests (HTTP library)
 
-### 2. Run Migrations
+### 2. Configure Jamendo API
+
+**Get your FREE API key:**
+1. Visit: https://devportal.jamendo.com/
+2. Create account / Login
+3. Go to "My Applications" → "Create new application"
+4. Copy your Client ID
+
+**Create `.env` file in project root:**
+```bash
+JAMENDO_CLIENT_ID=your_actual_client_id_here
+```
+
+See `JAMENDO_SETUP.md` for detailed configuration guide.
+
+### 3. Run Migrations
 
 ```bash
 python manage.py migrate
 ```
 
-### 3. Create Superuser (Admin)
+### 4. Create Superuser (Admin)
 
 ```bash
 python manage.py createsuperuser
@@ -112,7 +131,7 @@ python manage.py createsuperuser
 
 Follow the prompts to create an admin account with email and password.
 
-### 4. Start Development Server
+### 5. Start Development Server
 
 ```bash
 python manage.py runserver
@@ -120,6 +139,11 @@ python manage.py runserver
 
 The application will be available at: `http://localhost:8000/`
 Admin panel at: `http://localhost:8000/admin/`
+
+**Quick Test:**
+```bash
+python test_jamendo.py
+```
 
 ## 📁 Project Structure
 
@@ -135,7 +159,9 @@ music_Settings/
 │   ├── views.py             # API endpoints
 │   └── urls.py              # API routes
 ├── music/                    # Music browsing app
-│   ├── services.py          # ytmusicapi integration
+│   ├── services/            # API integrations
+│   │   ├── __init__.py
+│   │   └── jamendo.py       # Jamendo API service
 │   ├── views.py             # Music views
 │   └── urls.py              # Music routes
 ├── playlists/                # Playlist management app
@@ -150,14 +176,35 @@ music_Settings/
 │   ├── css/
 │   │   └── style.css        # Main stylesheet
 │   └── js/
-│       ├── player.js        # Music player controller
+│       ├── player.js        # Music player controller (Jamendo)
 │       └── main.js          # Main JavaScript
 ├── media/                    # User uploads (avatars)
 ├── manage.py                 # Django management script
-└── requirements.txt          # Python dependencies
+├── requirements.txt          # Python dependencies
+├── .env.example              # Environment variables template
+├── JAMENDO_SETUP.md          # Jamendo API setup guide
+├── IMPLEMENTATION_SUMMARY.md # Technical documentation
+└── test_jamendo.py           # API integration test
 ```
 
 ## 🎯 Usage Guide
+
+### Quick Start
+
+1. **Get Jamendo API Key** (FREE)
+   - Visit: https://devportal.jamendo.com/
+   - Create account and get Client ID
+   - Add to `.env` file: `JAMENDO_CLIENT_ID=your_id`
+
+2. **Start the Server**
+   ```bash
+   python manage.py runserver
+   ```
+
+3. **Browse Music**
+   - Visit: http://localhost:8000/search/
+   - Type any artist/song name
+   - Click play to start streaming!
 
 ### Registration & Login
 
@@ -167,20 +214,22 @@ music_Settings/
 
 ### Browsing Music
 
-1. **Home Page**: View trending songs and recommendations
-2. **Search**: Use the search bar to find any song, artist, album, or playlist
-3. **Filters**: Filter results by Songs, Albums, Artists, or Playlists
+1. **Home Page**: View popular/trending songs from Jamendo
+2. **Search**: Use the search bar to find any song or artist
+3. **Real-time Results**: Results appear as you type (no page reload)
 
-### Using the Player
+### Using the Player ⭐
 
 1. Click on any song card to play it
-2. Use player controls:
+2. **Direct MP3 streaming** from Jamendo
+3. Use player controls:
    - Play/Pause button
    - Previous/Next buttons
    - Shuffle mode
    - Repeat mode (None → All → One)
    - Volume slider
-3. Click heart icon to like/favorite a song
+   - Progress bar with seek
+4. Click heart icon to like/favorite a song
 
 ### Managing Playlists
 
@@ -204,11 +253,10 @@ music_Settings/
 
 ## 🔌 API Endpoints
 
-### Music APIs
-- `GET /api/search/?q=query&type=songs` - Search music
-- `GET /api/trending/` - Get trending songs
-- `GET /api/home-content/` - Get home page content
-- `GET /api/song/<song_id>/` - Get song details
+### Music APIs (Jamendo Integration)
+- `GET /api/search/?q=query&limit=20` - Search for tracks
+- `GET /api/popular/` - Get popular/trending tracks
+- `GET /api/track/<track_id>/` - Get track details
 
 ### Playlist APIs (Authentication Required)
 - `GET /api/playlists/` - List user playlists
@@ -255,21 +303,40 @@ Change the brand name in `templates/base.html`:
 
 ### Copyright & Legal
 
-This application uses the ytmusicapi library to fetch metadata from YouTube Music. 
+This application uses the **Jamendo API** to stream music from independent artists.
 
-- **No audio files are downloaded or stored** - only metadata is fetched
-- **Streaming is not implemented** in this demo due to copyright restrictions
-- For production use, you would need:
-  - Proper music licensing agreements
-  - Integration with a licensed streaming service
-  - Or use royalty-free music sources
+✅ **Legal & Licensed:**
+- All music on Jamendo is freely available under Creative Commons licenses
+- Artists voluntarily upload their music to Jamendo for free distribution
+- No copyright restrictions for personal listening
+- Perfect for discovering independent and emerging artists
+
+🎵 **How It Works:**
+- Direct MP3 streaming from Jamendo's servers
+- No audio files are downloaded or stored locally
+- Only metadata and stream URLs are fetched
+- Fully compliant with Jamendo's Terms of Service
+
+### Jamendo API Limits
+
+- **Free Tier:** Limited requests per day (check current limits)
+- **Commercial Use:** Requires separate agreement with Jamendo
+- **Attribution:** Required for some tracks (check individual licenses)
+
+Monitor your usage at: https://devportal.jamendo.com/analytics
 
 ### Production Deployment
 
 For production deployment:
 
 1. Set `DEBUG=False` in `.env`
-2. Use a production-ready database (PostgreSQL recommended)
+2. Set `JAMENDO_CLIENT_ID` in environment variables
+3. Use a production-ready database (PostgreSQL recommended)
+4. Configure proper web server (Nginx + Gunicorn)
+5. Set up HTTPS with SSL certificates
+6. Implement rate limiting and caching
+7. Set up CDN for static files
+8. Monitor Jamendo API usage limits
 3. Configure proper web server (Nginx + Gunicorn)
 4. Set up HTTPS with SSL certificates
 5. Use environment variables for sensitive data
@@ -301,6 +368,16 @@ python manage.py collectstatic
 - Check Client ID and Secret in `.env`
 - Ensure allauth is properly configured
 
+**Issue: No search results**
+- Check JAMENDO_CLIENT_ID in .env file
+- Test API: `python test_jamendo.py`
+- Verify network connection
+
+**Issue: Audio doesn't play**
+- Check browser console for errors
+- Some tracks may have geographic restrictions
+- Verify audio_url exists in track data
+
 ## 📝 License
 
 This project is open-source and available under the MIT License.
@@ -314,15 +391,26 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 For issues and questions:
 - Open an issue on GitHub
 - Check existing documentation
-- Review ytmusicapi documentation: https://ytmusicapi.readthedocs.io/
+- Review Jamendo API documentation: https://developer.jamendo.com/v3.0
+- See `JAMENDO_SETUP.md` for detailed setup guide
+- Run `python test_jamendo.py` to verify your setup
 
 ## 🙏 Acknowledgments
 
 - Built with [Django](https://www.djangoproject.com/)
-- Uses [ytmusicapi](https://github.com/sigma67/ytmusicapi) for YouTube Music integration
+- Uses [Jamendo API](https://www.jamendo.com/) for free music streaming
 - UI inspired by [Spotify](https://spotify.com)
 - Icons from [Bootstrap Icons](https://icons.getbootstrap.com/)
+- HTTP requests powered by [Requests](https://requests.readthedocs.io/)
 
 ---
 
-**Enjoy discovering and organizing your music!** 🎵
+**Enjoy discovering and streaming independent music! 🎵**
+
+## 📚 Additional Documentation
+
+- **Quick Start Guide**: `QUICKSTART_JAMENDO.md` - 3-minute setup
+- **Detailed Setup**: `JAMENDO_SETUP.md` - Complete configuration guide
+- **Technical Details**: `IMPLEMENTATION_SUMMARY.md` - Architecture and features
+- **Test Script**: `test_jamendo.py` - Verify your API integration
+- **Windows Launcher**: `run_jamendo.bat` - One-click startup

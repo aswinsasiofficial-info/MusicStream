@@ -132,19 +132,48 @@ class MusicPlayer {
             this.currentArtist.textContent = song.artist;
         }
         
-        // Play using YouTube player
-        const videoId = song.video_id || song.id;
-        console.log('🎵 Attempting to play:', song.title, '| Video ID:', videoId);
-        
-        if (videoId && window.youTubePlayer) {
-            window.youTubePlayer.playVideo(videoId);
-            
-            // Show toast notification
-            showToast(`Playing: ${song.title} by ${song.artist}`, 'success');
+        // Check if it's a Jamendo track (has audio_url)
+        if (song.audio_url) {
+            console.log('🎵 Playing Jamendo track:', song.title, '| ID:', song.id);
+            this.playJamendoTrack(song.audio_url);
         } else {
-            console.error('✗ No video ID or player not available');
-            showToast('Unable to play song - no video ID', 'danger');
+            // Fallback to YouTube player
+            const videoId = song.video_id || song.id;
+            console.log('🎵 Attempting to play via YouTube:', song.title, '| Video ID:', videoId);
+            
+            if (videoId && window.youTubePlayer) {
+                window.youTubePlayer.playVideo(videoId);
+                
+                // Show toast notification
+                showToast(`Playing: ${song.title} by ${song.artist}`, 'success');
+            } else {
+                console.error('✗ No video ID or player not available');
+                showToast('Unable to play song - no audio source', 'danger');
+            }
         }
+    }
+    
+    playJamendoTrack(audioUrl) {
+        // Load and play Jamendo MP3 stream
+        if (!audioUrl) {
+            showToast('No audio URL available', 'danger');
+            return;
+        }
+        
+        console.log('🔊 Loading audio from:', audioUrl);
+        
+        // Set audio source
+        this.audio.src = audioUrl;
+        
+        // Play the audio
+        this.audio.play().then(() => {
+            this.isPlaying = true;
+            this.updatePlayPauseButton();
+            showToast(`Playing: ${this.currentSong.title} by ${this.currentSong.artist}`, 'success');
+        }).catch(error => {
+            console.error('Error playing audio:', error);
+            showToast('Error loading audio stream', 'danger');
+        });
     }
     
     getStreamUrl(song) {

@@ -136,3 +136,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.User'
+
+# Jamendo API Configuration
+import os
+JAMENDO_CLIENT_ID = os.environ.get('JAMENDO_CLIENT_ID', '')

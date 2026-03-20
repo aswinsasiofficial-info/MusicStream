@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ playlist.name }} - MusicStream{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-5 mt-4">
+        <div class="col-md-3">
+            <img src="{{ playlist.thumbnail|default:'https://via.placeholder.com/300' }}" alt="{{ playlist.name }}" class="img-fluid rounded shadow-lg">
+        </div>
+        <div class="col-md-9 d-flex flex-column justify-content-end">
+            <p class="text-uppercase fw-bold mb-1" style="font-size: 12px; letter-spacing: 1px;">Playlist</p>
+            <h1 class="display-3 fw-bold mb-3">{{ playlist.name }}</h1>
+            <p class="text-secondary mb-4">{{ playlist.description|default:"No description" }}</p>
+            <div class="d-flex align-items-center">
+                <span class="fw-bold">{{ user.username|default:user.email }}</span>
+                <span class="mx-2">•</span>
+                <span>{{ songs.count }} songs</span>
+            </div>
+            <div class="mt-4">
+                <button class="btn btn-primary btn-lg rounded-pill px-4" id="playAllBtn">
+                    <i class="bi bi-play-fill"></i> Play All
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Songs List -->
+    <div class="songs-table-container">
+        <table class="table table-dark table-hover align-middle">
+            <thead>
+                <tr>
+                    <th scope="col" style="width: 50px;">#</th>
+                    <th scope="col">Title</th>
+                    <th scope="col">Album</th>
+                    <th scope="col">Date Added</th>
+                    <th scope="col" style="width: 100px;">Duration</th>
+                    <th scope="col" style="width: 50px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for song in songs %}
+                <tr class="song-row" 
+                    data-song-id="{{ song.song_id }}"
+                    data-audio-url="{{ song.audio_url|default:'' }}">
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <img src="{{ song.thumbnail|default:'https://via.placeholder.com/40' }}" alt="{{ song.title }}" class="rounded me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                            <div>
+                                <div class="fw-bold song-title">{{ song.title }}</div>
+                                <div class="text-secondary artist-name">{{ song.artist }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="text-secondary">{{ song.album|default:"-" }}</td>
+                    <td class="text-secondary">{{ song.added_at|date:"M d, Y" }}</td>
+                    <td class="text-secondary">{{ song.duration|default:"-" }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-icon text-secondary remove-song-btn" data-id="{{ song.id }}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-secondary">
+                        <i class="bi bi-music-note-beamed mb-3" style="font-size: 48px;"></i>
+                        <p>No songs in this playlist yet.</p>
+                        <a href="{% url 'search' %}" class="btn btn-outline-light mt-2">Find Songs</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Handle song click
+document.querySelectorAll('.song-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+        // Don't trigger if clicking the remove button
+        if (e.target.closest('.remove-song-btn')) return;
+        
+        const songData = {
+            id: row.dataset.songId,
+            video_id: row.dataset.songId,
+            audio_url: row.dataset.audioUrl,
+            title: row.querySelector('.song-title').textContent,
+            artist: row.querySelector('.artist-name').textContent,
+            thumbnail: row.querySelector('img').src,
+        };
+        
+        if (window.musicPlayer) {
+            window.musicPlayer.loadAndPlay(songData);
+            
+            // Update recently played
+            fetch('/api/recently-played/add/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    song_id: songData.id || songData.video_id,
+                    title: songData.title,
+                    artist: songData.artist,
+                    thumbnail: songData.thumbnail,
+                    audio_url: songData.audio_url
+                })
+            }).catch(err => console.error('Error updating recently played:', err));
+        }
+    });
+});
+
+// Remove song from playlist
+document.querySelectorAll('.remove-song-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm('Are you sure you want to remove this song?')) return;
+        
+        const songId = btn.dataset.id;
+        const playlistId = '{{ playlist.id }}';
+        
+        try {
+            const response = await fetch(`/api/playlist-songs/${playlistId}/${songId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+            
+            if (response.ok) {
+                btn.closest('tr').remove();
+                // Update song count in header
+                const countSpan = document.querySelector('.col-md-9 span:last-child');
+                const currentCount = parseInt(countSpan.textContent);
+                countSpan.textContent = `${currentCount - 1} songs`;
+            }
+        } catch (error) {
+            console.error('Error removing song:', error);
+        }
+    });
+});
+
+// Play all songs
+document.getElementById('playAllBtn').addEventListener('click', () => {
+    const songs = [];
+    document.querySelectorAll('.song-row').forEach(row => {
+        songs.push({
+            id: row.dataset.songId,
+            video_id: row.dataset.songId,
+            audio_url: row.dataset.audioUrl,
+            title: row.querySelector('.song-title').textContent,
+            artist: row.querySelector('.artist-name').textContent,
+            thumbnail: row.querySelector('img').src
+        });
+    });
+    
+    if (songs.length > 0 && window.musicPlayer) {
+        window.musicPlayer.queue = songs;
+        window.musicPlayer.currentIndex = 0;
+        window.musicPlayer.loadAndPlay(songs[0]);
+    }
+});
+</script>
+{% endblock %}

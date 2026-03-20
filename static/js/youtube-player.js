@@ -86,16 +86,19 @@ class YouTubePlayer {
         if (event.data === YT.PlayerState.PLAYING) {
             this.isPlaying = true;
             if (window.musicPlayer) {
+                window.musicPlayer.isPlaying = true;
                 window.musicPlayer.updatePlayPauseButton();
             }
         } else if (event.data === YT.PlayerState.PAUSED) {
             this.isPlaying = false;
             if (window.musicPlayer) {
+                window.musicPlayer.isPlaying = false;
                 window.musicPlayer.updatePlayPauseButton();
             }
         } else if (event.data === YT.PlayerState.ENDED) {
             this.isPlaying = false;
             if (window.musicPlayer) {
+                window.musicPlayer.isPlaying = false;
                 window.musicPlayer.handleSongEnd();
             }
         }

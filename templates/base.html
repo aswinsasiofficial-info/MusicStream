@@ -20,7 +20,6 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    {% if user.is_authenticated %}
     <!-- Sidebar Navigation -->
     <nav class="sidebar">
         <div class="sidebar-header">
@@ -52,6 +51,7 @@
                 </li>
             </ul>
             
+            {% if user.is_authenticated %}
             <div class="sidebar-section">
                 <h6>Playlists</h6>
                 <div id="user-playlists">
@@ -62,6 +62,7 @@
                     <span>Create Playlist</span>
                 </button>
             </div>
+            {% endif %}
         </div>
         
         <div class="sidebar-footer">
@@ -78,26 +79,25 @@
                 <i class="bi bi-box-arrow-right"></i>
             </a>
             {% else %}
-            <a href="{% url 'login' %}" class="btn btn-sm btn-outline-light">
-                <i class="bi bi-box-arrow-in-forward-right"></i> Login
+            <a href="{% url 'login' %}" class="btn btn-sm btn-outline-light w-100 d-flex align-items-center justify-content-center gap-2">
+                <i class="bi bi-box-arrow-in-right"></i> Login
             </a>
             {% endif %}
         </div>
     </nav>
-    {% endif %}
     
     <!-- Main Content -->
     <main class="main-content">
-        {% if messages %}
         <div class="messages-container">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            {% endfor %}
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
         </div>
-        {% endif %}
         
         {% block content %}{% endblock %}
     </main>
@@ -149,29 +149,56 @@
     </footer>
     {% endif %}
     
+    <!-- Mobile Navigation -->
+    <nav class="mobile-nav d-md-none">
+        <a href="{% url 'home' %}" class="mobile-nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+            <i class="bi bi-house-door{% if request.resolver_match.url_name == 'home' %}-fill{% endif %}"></i>
+            <span>Home</span>
+        </a>
+        <a href="{% url 'search' %}" class="mobile-nav-link {% if 'search' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="bi bi-search"></i>
+            <span>Search</span>
+        </a>
+        <a href="{% url 'library' %}" class="mobile-nav-link {% if 'library' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="bi bi-collection{% if 'library' in request.resolver_match.url_name %}-fill{% endif %}"></i>
+            <span>Library</span>
+        </a>
+        {% if user.is_authenticated %}
+        <a href="{% url 'profile' %}" class="mobile-nav-link {% if 'profile' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="bi bi-person{% if 'profile' in request.resolver_match.url_name %}-fill{% endif %}"></i>
+            <span>Profile</span>
+        </a>
+        {% else %}
+        <a href="{% url 'login' %}" class="mobile-nav-link {% if 'login' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="bi bi-box-arrow-in-right"></i>
+            <span>Login</span>
+        </a>
+        {% endif %}
+    </nav>
+    
     <!-- Create Playlist Modal -->
     <div class="modal fade" id="createPlaylistModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Create New Playlist</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Create Playlist</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body py-4">
                     <form id="createPlaylistForm">
-                        <div class="mb-3">
-                            <label class="form-label">Playlist Name</label>
-                            <input type="text" class="form-control" id="playlistName" required>
+                        <div class="mb-4">
+                            <label class="form-label text-secondary small text-uppercase fw-bold">Name</label>
+                            <input type="text" class="form-control form-control-lg border-0 shadow-none" id="playlistName" placeholder="My Playlist #1" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Description (optional)</label>
-                            <textarea class="form-control" id="playlistDescription" rows="3"></textarea>
+                        <div class="mb-0">
+                            <label class="form-label text-secondary small text-uppercase fw-bold">Description</label>
+                            <textarea class="form-control border-0 shadow-none" id="playlistDescription" rows="3" placeholder="Give your playlist a catchy description..."></textarea>
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="createPlaylistBtn">Create</button>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-link text-white text-decoration-none" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4" id="createPlaylistBtn">Create</button>
                 </div>
             </div>
         </div>
@@ -184,18 +211,6 @@
     <!-- Custom JS -->
     <script src="{% static 'js/player.js' %}"></script>
     <script src="{% static 'js/main.js' %}"></script>
-    
-    <!-- Test YouTube Player on Load -->
-    <script>
-        // Auto-test with a known working video after 2 seconds
-        setTimeout(() => {
-            if (window.youTubePlayer && window.youTubePlayer.player) {
-                console.log('🧪 Testing YouTube player with sample video...');
-                // Test with a copyright-free music video that allows embedding
-                window.youTubePlayer.playVideo('jfKfPfyJRdk'); // Lofi Girl - usually works
-            }
-        }, 2000);
-    </script>
     
     {% block extra_js %}{% endblock %}
 </body>

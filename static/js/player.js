@@ -74,6 +74,9 @@ class MusicPlayer {
         if (this.volumeSlider) {
             this.volumeSlider.addEventListener('input', (e) => {
                 const volume = e.target.value;
+                // Update HTML5 audio volume
+                this.audio.volume = volume / 100;
+                // Update YouTube player volume
                 if (window.youTubePlayer && window.youTubePlayer.setVolume) {
                     window.youTubePlayer.setVolume(parseInt(volume));
                 }
@@ -111,13 +114,40 @@ class MusicPlayer {
         
         // Error handling
         this.audio.addEventListener('error', (e) => {
-            console.error('Audio error:', e);
-            this.showError();
+            console.error('Audio error event:', e);
+            const error = this.audio.error;
+            let message = 'Audio error occurred';
+            
+            if (error) {
+                switch (error.code) {
+                    case error.MEDIA_ERR_ABORTED:
+                        message = 'Playback aborted by user';
+                        break;
+                    case error.MEDIA_ERR_NETWORK:
+                        message = 'Network error while loading audio';
+                        break;
+                    case error.MEDIA_ERR_DECODE:
+                        message = 'Audio decoding failed';
+                        break;
+                    case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                        message = 'Audio format not supported or file not found';
+                        break;
+                }
+            }
+            showToast(message, 'danger');
         });
     }
     
     loadAndPlay(song) {
         if (!song) return;
+        
+        // Stop current playback before starting new one
+        if (this.currentSong && this.currentSong.audio_url) {
+            this.audio.pause();
+            this.audio.src = '';
+        } else if (window.youTubePlayer && window.youTubePlayer.stopVideo) {
+            window.youTubePlayer.stopVideo();
+        }
         
         this.currentSong = song;
         
@@ -162,8 +192,12 @@ class MusicPlayer {
         
         console.log('🔊 Loading audio from:', audioUrl);
         
+        // Stop any current playback
+        this.audio.pause();
+        
         // Set audio source
         this.audio.src = audioUrl;
+        this.audio.load(); // Explicitly load the new source
         
         // Play the audio
         this.audio.play().then(() => {
@@ -172,7 +206,16 @@ class MusicPlayer {
             showToast(`Playing: ${this.currentSong.title} by ${this.currentSong.artist}`, 'success');
         }).catch(error => {
             console.error('Error playing audio:', error);
-            showToast('Error loading audio stream', 'danger');
+            
+            // Provide more specific error message based on the error
+            let message = 'Error loading audio stream';
+            if (error.name === 'NotAllowedError') {
+                message = 'Playback blocked by browser. Please click play to start.';
+            } else if (error.name === 'NotSupportedError') {
+                message = 'Audio format not supported by your browser.';
+            }
+            
+            showToast(message, 'danger');
         });
     }
     
@@ -202,15 +245,32 @@ class MusicPlayer {
     }
     
     play() {
-        if (window.youTubePlayer && window.youTubePlayer.resumeVideo) {
+        if (this.currentSong && this.currentSong.audio_url) {
+            // Jamendo track
+            this.audio.play().then(() => {
+                this.isPlaying = true;
+                this.updatePlayPauseButton();
+            }).catch(error => {
+                console.error('Error playing Jamendo track:', error);
+            });
+        } else if (window.youTubePlayer && window.youTubePlayer.resumeVideo) {
+            // YouTube track
             window.youTubePlayer.resumeVideo();
+            this.isPlaying = true;
+            this.updatePlayPauseButton();
         }
     }
     
     pause() {
-        if (window.youTubePlayer && window.youTubePlayer.pauseVideo) {
+        if (this.currentSong && this.currentSong.audio_url) {
+            // Jamendo track
+            this.audio.pause();
+        } else if (window.youTubePlayer && window.youTubePlayer.pauseVideo) {
+            // YouTube track
             window.youTubePlayer.pauseVideo();
         }
+        this.isPlaying = false;
+        this.updatePlayPauseButton();
     }
     
     togglePlayPause() {

@@ -26,7 +26,7 @@ class PlaylistSongSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlaylistSong
         fields = ['id', 'playlist', 'song_id', 'title', 'artist', 'album', 
-                  'duration', 'thumbnail', 'added_at']
+                  'duration', 'thumbnail', 'audio_url', 'added_at']
         read_only_fields = ['id', 'added_at']
 
 
@@ -36,7 +36,7 @@ class RecentlyPlayedSerializer(serializers.ModelSerializer):
     class Meta:
         model = RecentlyPlayed
         fields = ['id', 'song_id', 'title', 'artist', 'album', 
-                  'duration', 'thumbnail', 'played_at']
+                  'duration', 'thumbnail', 'audio_url', 'played_at']
         read_only_fields = ['id', 'played_at']
     
     def create(self, validated_data):
@@ -56,7 +56,7 @@ class FavoriteSongSerializer(serializers.ModelSerializer):
     class Meta:
         model = FavoriteSong
         fields = ['id', 'song_id', 'title', 'artist', 'album', 
-                  'duration', 'thumbnail', 'added_at']
+                  'duration', 'thumbnail', 'audio_url', 'added_at']
         read_only_fields = ['id', 'added_at']
     
     def create(self, validated_data):

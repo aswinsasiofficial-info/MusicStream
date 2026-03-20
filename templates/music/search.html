@@ -184,6 +184,24 @@ function showError() {
 function playSong(song) {
     if (window.musicPlayer) {
         window.musicPlayer.loadAndPlay(song);
+        
+        // Update recently played
+        fetch('/api/recently-played/add/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                song_id: song.id || song.video_id,
+                title: song.title,
+                artist: song.artist,
+                album: song.album || '',
+                duration: song.duration || '',
+                thumbnail: song.thumbnail,
+                audio_url: song.audio_url
+            })
+        }).catch(err => console.error('Error updating recently played:', err));
     }
 }
 </script>

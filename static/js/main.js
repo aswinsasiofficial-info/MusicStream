@@ -68,13 +68,22 @@ async function createPlaylist(name, description = '') {
         if (response.ok) {
             const playlist = await response.json();
             loadUserPlaylists(); // Refresh playlist list
+            showToast('Playlist created successfully!', 'success');
             return playlist;
         } else {
-            throw new Error('Failed to create playlist');
+            let errorMessage = 'Failed to create playlist';
+            try {
+                const errorData = await response.json();
+                console.error('Server error creating playlist:', errorData);
+                errorMessage = errorData.detail || JSON.stringify(errorData) || errorMessage;
+            } catch (e) {
+                console.error('Non-JSON error response');
+            }
+            throw new Error(errorMessage);
         }
     } catch (error) {
         console.error('Error creating playlist:', error);
-        alert('Failed to create playlist. Please try again.');
+        showToast(error.message || 'Failed to create playlist. Please try again.', 'danger');
         return null;
     }
 }
@@ -112,36 +121,62 @@ async function addSongToPlaylist(playlistId, song) {
 
 // Initialize create playlist modal
 function initCreatePlaylistModal() {
+    const createForm = document.getElementById('createPlaylistForm');
     const createBtn = document.getElementById('createPlaylistBtn');
-    if (!createBtn) return;
     
-    createBtn.addEventListener('click', async () => {
-        const nameInput = document.getElementById('playlistName');
-        const descInput = document.getElementById('playlistDescription');
-        
-        const name = nameInput.value.trim();
-        const description = descInput.value.trim();
-        
-        if (!name) {
-            alert('Please enter a playlist name');
-            return;
-        }
-        
-        const playlist = await createPlaylist(name, description);
-        
-        if (playlist) {
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('createPlaylistModal'));
-            if (modal) modal.hide();
+    if (createForm) {
+        createForm.addEventListener('submit', (e) => e.preventDefault());
+    }
+    
+    if (createBtn) {
+        // Use a direct onclick or ensure listener is added
+        createBtn.onclick = async function(e) {
+            e.preventDefault();
             
-            // Clear form
-            nameInput.value = '';
-            descInput.value = '';
+            const nameInput = document.getElementById('playlistName');
+            const descInput = document.getElementById('playlistDescription');
             
-            // Reload playlists
-            loadUserPlaylists();
-        }
-    });
+            if (!nameInput) {
+                console.error('Playlist name input not found');
+                return;
+            }
+            
+            const name = nameInput.value.trim();
+            const description = descInput ? descInput.value.trim() : '';
+            
+            if (!name) {
+                showToast('Please enter a playlist name', 'warning');
+                return;
+            }
+            
+            // Disable button to prevent double clicks
+            createBtn.disabled = true;
+            createBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
+            
+            try {
+                const playlist = await createPlaylist(name, description);
+                
+                if (playlist) {
+                    // Close modal using Bootstrap API
+                    const modalElement = document.getElementById('createPlaylistModal');
+                    const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                    modal.hide();
+                    
+                    // Clear form
+                    nameInput.value = '';
+                    if (descInput) descInput.value = '';
+                    
+                    // Reload playlists
+                    await loadUserPlaylists();
+                }
+            } catch (error) {
+                console.error('Error in modal handler:', error);
+            } finally {
+                createBtn.disabled = false;
+                createBtn.innerHTML = 'Create';
+            }
+        };
+    }
 }
 
 // Debounce function for search
@@ -238,6 +273,9 @@ function setupLazyLoading() {
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize create playlist modal
     initCreatePlaylistModal();
+    
+    // Load initial playlists
+    loadUserPlaylists();
     
     // Setup lazy loading for images
     setupLazyLoading();

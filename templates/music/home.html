@@ -7,7 +7,13 @@
 <div class="container-fluid">
     <!-- Welcome Header -->
     <div class="section-header">
-        <h2>Good {{ time_of_day }}, {{ user.username|default:user.email|default:"Music Lover" }}</h2>
+        <h2>Good {{ time_of_day }}, 
+            {% if user.is_authenticated %}
+                {{ user.username|default:user.email }}
+            {% else %}
+                Music Lover
+            {% endif %}
+        </h2>
     </div>
     
     <!-- Quick Picks Grid -->
@@ -28,12 +34,14 @@
     </div>
     
     <!-- Recommended Sections -->
-    <div class="section-header">
-        <h2>Made For You</h2>
-    </div>
-    
-    <div class="card-grid" id="recommendedSection">
-        <!-- Recommended content will be loaded here -->
+    <div id="homeSections">
+        <div class="section-header">
+            <h2>Made For You</h2>
+        </div>
+        
+        <div class="card-grid" id="recommendedSection">
+            <!-- Recommended content will be loaded here -->
+        </div>
     </div>
 </div>
 
@@ -79,7 +87,7 @@ function getTimeOfDay() {
 }
 
 document.querySelector('.section-header h2').textContent = 
-    `Good ${getTimeOfDay()}, {{ user.username|default:user.email }}`;
+    `Good ${getTimeOfDay()}, {% if user.is_authenticated %}{{ user.username|default:user.email }}{% else %}Music Lover{% endif %}`;
 
 <!-- Load trending songs -->
 async function loadTrending() {
@@ -126,17 +134,27 @@ async function loadHomeContent() {
         const data = await response.json();
         
         if (data.content && data.content.length > 0) {
-            const container = document.getElementById('recommendedSection');
+            const container = document.getElementById('homeSections');
             container.innerHTML = '';
             
             data.content.forEach(section => {
                 if (section.contents && section.contents.length > 0) {
+                    // Create section header
+                    const header = document.createElement('div');
+                    header.className = 'section-header mt-5';
+                    header.innerHTML = `<h2>${section.title}</h2>`;
+                    container.appendChild(header);
+                    
+                    // Create card grid
+                    const grid = document.createElement('div');
+                    grid.className = 'card-grid';
+                    
                     section.contents.forEach(item => {
-                        if (item.type === 'song' || item.video_id) {
-                            const card = createSongCard(item);
-                            container.appendChild(card);
-                        }
+                        const card = createSongCard(item);
+                        grid.appendChild(card);
                     });
+                    
+                    container.appendChild(grid);
                 }
             });
         }
@@ -188,7 +206,8 @@ function playSong(song) {
                 artist: song.artist,
                 album: song.album || '',
                 duration: song.duration || '',
-                thumbnail: song.thumbnail
+                thumbnail: song.thumbnail,
+                audio_url: song.audio_url
             })
         }).catch(err => console.error('Error updating recently played:', err));
     }

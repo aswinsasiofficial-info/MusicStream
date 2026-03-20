@@ -34,6 +34,7 @@ class PlaylistSong(models.Model):
     album = models.CharField(max_length=300, blank=True, default='')
     duration = models.CharField(max_length=20, blank=True, default='')
     thumbnail = models.URLField(blank=True, null=True)
+    audio_url = models.URLField(blank=True, null=True)
     added_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -56,6 +57,7 @@ class RecentlyPlayed(models.Model):
     album = models.CharField(max_length=300, blank=True, default='')
     duration = models.CharField(max_length=20, blank=True, default='')
     thumbnail = models.URLField(blank=True, null=True)
+    audio_url = models.URLField(blank=True, null=True)
     played_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -77,6 +79,7 @@ class FavoriteSong(models.Model):
     album = models.CharField(max_length=300, blank=True, default='')
     duration = models.CharField(max_length=20, blank=True, default='')
     thumbnail = models.URLField(blank=True, null=True)
+    audio_url = models.URLField(blank=True, null=True)
     added_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:

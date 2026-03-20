@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.cache import cache_page
+from django.contrib.auth.decorators import login_required
 import json
 from datetime import datetime
 
@@ -25,6 +26,7 @@ def search(request):
     return render(request, 'music/search.html')
 
 
+@login_required
 def library(request):
     """User library view"""
     return render(request, 'playlists/library.html')
@@ -73,3 +75,45 @@ def track_detail_api(request, track_id):
         return JsonResponse({'error': 'Track not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def home_content_api(request):
+    """Get content for home page"""
+    from music.services.jamendo import jamendo
+    
+    try:
+        # Get different categories of music
+        recommended = jamendo.get_popular_tracks(limit=10)
+        new_releases = jamendo.search_tracks("latest", limit=10)
+        
+        # Structure it as expected by the frontend
+        return JsonResponse({
+            'content': [
+                {
+                    'title': 'Recommended for You',
+                    'contents': recommended
+                },
+                {
+                    'title': 'New Releases',
+                    'contents': new_releases
+                }
+            ]
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def playlist_detail(request, playlist_id):
+    """Playlist detail page view"""
+    from playlists.models import Playlist
+    from django.shortcuts import get_object_or_404
+    
+    playlist = get_object_or_404(Playlist, id=playlist_id, user=request.user)
+    songs = playlist.songs.all()
+    
+    return render(request, 'playlists/playlist_detail.html', {
+        'playlist': playlist,
+        'songs': songs
+    })

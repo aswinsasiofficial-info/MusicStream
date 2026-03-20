@@ -1,0 +1,91 @@
+================================================================================
+MUSIC PLATFORM: PROJECT ARCHITECTURE AND FLOW EXPLANATION
+================================================================================
+
+1. OVERVIEW & CORE TECHNOLOGIES
+--------------------------------------------------------------------------------
+This project is a modern, responsive music streaming platform built using:
+- Backend: Django 6.0 (Python 3.14)
+- API: Django REST Framework (DRF)
+- Database: SQLite (can be migrated to PostgreSQL)
+- Frontend: Vanilla JavaScript, Bootstrap 5, Bootstrap Icons
+- Music Sources: Jamendo API (MP3 Streaming) & YouTube IFrame API (Video/Audio)
+
+2. AUTHENTICATION & USER MANAGEMENT
+--------------------------------------------------------------------------------
+Flow:
+- Custom User Model: The project uses a custom `User` model located in 'accounts/models.py', 
+  where 'email' is the primary unique identifier instead of a 'username'.
+- Registration: 'accounts/views.py' handles user signup. It uses 'CustomUserCreationForm' 
+  from 'accounts/forms.py' to securely hash passwords and create users.
+- Login/Logout: standard Django authentication backend but configured for email-based 
+  login. After login, users are redirected to the 'home' page.
+
+3. MUSIC DISCOVERY & DATA FLOW
+--------------------------------------------------------------------------------
+Flow:
+- Jamendo Integration: The 'music/services/jamendo.py' file is a service layer that 
+  interacts with the Jamendo API. It fetches popular tracks, new releases, and 
+  searches for songs using a 'JAMENDO_CLIENT_ID'.
+- Home Page Discovery: 'music/views.py' defines a 'home_content_api' which calls 
+  Jamendo to get "Recommended for You" and "New Releases" tracks.
+- Frontend Rendering: 'static/js/main.js' uses 'fetch()' to call these internal APIs 
+  and dynamically builds the music cards seen on the home page.
+
+4. PLAYLIST & LIBRARY MANAGEMENT
+--------------------------------------------------------------------------------
+Flow:
+- Data Storage: 'playlists/models.py' defines 'Playlist', 'PlaylistSong', 
+  'RecentlyPlayed', and 'FavoriteSong' models.
+- API Endpoints: 'api/views.py' uses DRF 'ModelViewSets' to provide full CRUD 
+  (Create, Read, Update, Delete) functionality for playlists.
+- Sidebar Updates: 'static/js/main.js' contains 'loadUserPlaylists()' which 
+  automatically fetches the user's current playlists and updates the sidebar menu.
+- Song Persistence: When a user plays a song, it's automatically added to 
+  'RecentlyPlayed' via a POST request to the API.
+
+5. THE DUAL-PLAYER SYSTEM (SYNC FLOW)
+--------------------------------------------------------------------------------
+This is the heart of the project. 'static/js/player.js' manages two separate 
+audio engines:
+- Engine A (HTML5 Audio): Used for playing direct MP3 streams from Jamendo.
+- Engine B (YouTube API): Managed by 'static/js/youtube-player.js' for tracks 
+  that are YouTube videos.
+Sync Logic:
+- When a song is loaded, the player checks if it has an 'audio_url' (Jamendo) 
+  or a 'video_id' (YouTube).
+- It pauses the inactive engine and starts the active one.
+- The global 'musicPlayer' object synchronizes UI elements like the play/pause 
+  button, progress bar, and volume slider across both engines.
+
+6. FRONTEND-BACKEND COMMUNICATION
+--------------------------------------------------------------------------------
+Flow:
+- CSRF Protection: All POST/DELETE requests from JavaScript include an 
+  'X-CSRFToken' header fetched from browser cookies using the 'getCookie()' 
+  helper in 'main.js'.
+- REST API: The frontend communicates with the backend exclusively through 
+  JSON-based REST endpoints defined in 'api/urls.py'.
+
+7. RESPONSIVE DESIGN & MOBILE FLOW
+--------------------------------------------------------------------------------
+Flow:
+- Desktop: Features a fixed left sidebar with navigation and personal playlists.
+- Mobile: The sidebar is hidden. A dedicated bottom navigation bar (Home, Search, 
+  Library, Profile) appears at the bottom of the screen.
+- Layout: 'style.css' uses CSS Variables and Media Queries to adjust the 
+  height of the main content area so it never overlaps the fixed music player 
+  or the mobile navbar.
+
+8. DATABASE SCHEMA OVERVIEW
+--------------------------------------------------------------------------------
+- User: Stores credentials and profile info (avatar, etc.).
+- Playlist: Stores name, description, and user ID.
+- PlaylistSong: Maps songs to a specific playlist, storing metadata like title, 
+  artist, thumbnail, and the critical 'audio_url' for streaming.
+- RecentlyPlayed / FavoriteSong: Similar to PlaylistSong, but used for tracking 
+  the user's listening history and likes.
+
+================================================================================
+END OF EXPLANATION
+================================================================================

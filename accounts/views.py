@@ -15,8 +15,8 @@ def register(request):
         if form.is_valid():
             user = form.save()
             email = form.cleaned_data.get('email')
-            password = request.POST.get('password1')
-            user = authenticate(email=email, password=password)
+            password = form.cleaned_data.get('password1')
+            user = authenticate(request, email=email, password=password)
             if user:
                 login(request, user)
                 messages.success(request, 'Account created successfully!')

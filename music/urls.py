@@ -5,9 +5,11 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('search/', views.search, name='search'),
     path('library/', views.library, name='library'),
+    path('playlist/<int:playlist_id>/', views.playlist_detail, name='playlist_detail'),
     
     # API endpoints
     path('api/search/', views.search_api, name='search_api'),
     path('api/popular/', views.popular_api, name='popular_api'),
+    path('api/home-content/', views.home_content_api, name='home_content_api'),
     path('api/track/<str:track_id>/', views.track_detail_api, name='track_detail_api'),
 ]

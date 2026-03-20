@@ -151,11 +151,16 @@ class JamendoService:
         if not data:
             return None
         
-        # Get audio URL - Jamendo provides audiodownload for full track
-        audio_url = data.get('audio', '')
+        # Get audio URL - Jamendo provides audiodownload for direct file access
+        # Prefer audiodownload as it's more stable for direct streaming
+        audio_url = data.get('audiodownload', '')
         if not audio_url:
-            # Fallback to download URL if audio not available
-            audio_url = data.get('audiodownload', '')
+            audio_url = data.get('audio', '')
+            
+        # Append client_id to audio_url if not present
+        if audio_url and 'client_id' not in audio_url and self.client_id:
+            separator = '&' if '?' in audio_url else '?'
+            audio_url = f"{audio_url}{separator}client_id={self.client_id}"
         
         # Get image - use album image if available
         image_url = ''

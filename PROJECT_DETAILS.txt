@@ -1,0 +1,162 @@
+MusicStream - Full-Stack Music Streaming Platform
+====================================================
+
+Overview
+--------
+MusicStream is a Spotify-inspired music streaming web application built with Django and Bootstrap 5, integrating Jamendo API for free music discovery from independent artists.
+
+Tech Stack
+----------
+Backend:
+- Django 6.0.3
+- Django REST Framework 3.15.1
+- Requests 2.31.0
+- Pillow 10.3.0
+- ytmusicapi 1.3.2
+- python-decouple 3.8
+- SQLite (default database)
+
+Frontend:
+- HTML5, CSS3, JavaScript (ES6+)
+- Bootstrap 5.3.0
+- Bootstrap Icons
+- HTML5 Audio API
+
+Features
+--------
+1. User Authentication
+   - Email + password registration and login
+   - User profiles with avatars and bios
+   - Session management
+
+2. Music Browsing
+   - Search songs using Jamendo API
+   - Popular/trending sections
+   - Rich metadata with thumbnails and duration
+
+3. Music Player
+   - Persistent bottom player (Spotify-style)
+   - Direct MP3 streaming from Jamendo
+   - Play, pause, next, previous controls
+   - Seek bar and volume control
+   - Shuffle and repeat modes
+   - Like/favorite songs
+
+4. Playlists
+   - Create, edit, delete playlists
+   - Add/remove songs from playlists
+   - Private user playlists
+
+5. Library Features
+   - Recently played tracking
+   - Favorite songs
+   - Organized tabs (Playlists, Favorites, Recently Played)
+
+6. UI/UX
+   - Modern dark theme inspired by Spotify
+   - Sidebar navigation (Home, Search, Library)
+   - Fully responsive design (mobile + desktop)
+
+Project Structure
+-----------------
+music_Settings/
+├── accounts/                 # User authentication app
+│   ├── models.py            # Custom User model
+│   ├── forms.py             # Registration and profile forms
+│   ├── views.py             # Auth views
+│   ├── urls.py              # Auth routes
+│   └── admin.py             # Admin configuration
+├── api/                      # REST API app
+│   ├── serializers.py       # DRF serializers
+│   ├── views.py             # API endpoints
+│   └── urls.py              # API routes
+├── music/                    # Music browsing app
+│   ├── services/            # API integrations
+│   │   ├── __init__.py
+│   │   └── jamendo.py       # Jamendo API service
+│   ├── views.py             # Music views
+│   └── urls.py              # Music routes
+├── playlists/                # Playlist management app
+│   ├── models.py            # Playlist and song models
+│   └── admin.py             # Admin interface
+├── templates/                # HTML templates
+│   ├── base.html            # Base template with player
+│   ├── accounts/            # Auth templates
+│   ├── music/               # Music browsing templates
+│   └── playlists/           # Playlist templates
+├── static/                   # Static files
+│   ├── css/
+│   │   └── style.css        # Main stylesheet
+│   └── js/
+│       ├── player.js        # Music player controller
+│       ├── main.js          # Main JavaScript
+│       └── youtube-player.js
+├── media/                    # User uploads (avatars)
+├── manage.py                 # Django management script
+├── requirements.txt          # Python dependencies
+├── .env.example              # Environment variables template
+└── music_Settings/
+    ├── settings.py          # Django settings
+    ├── urls.py              # Main URL config
+    ├── wsgi.py              # WSGI config
+    └── asgi.py              # ASGI config
+
+Environment Variables
+---------------------
+Required:
+- JAMENDO_CLIENT_ID: Your Jamendo API Client ID (get from https://devportal.jamendo.com/)
+
+Optional:
+- SECRET_KEY: Django secret key
+- DEBUG: Set to False in production
+- ALLOWED_HOSTS: Comma-separated list of allowed hosts
+
+Setup Instructions
+------------------
+1. Install dependencies:
+   pip install -r requirements.txt
+
+2. Create .env file and set JAMENDO_CLIENT_ID
+
+3. Run migrations:
+   python manage.py migrate
+
+4. Start development server:
+   python manage.py runserver
+
+API Endpoints
+-------------
+Public:
+- GET / - Home page
+- GET /search/ - Search page
+- GET /accounts/register/ - User registration
+- GET /accounts/login/ - User login
+- GET /api/search/?q=query - Search tracks
+- GET /api/popular/ - Get popular tracks
+- GET /api/track/<track_id>/ - Get track details
+
+Protected (login required):
+- GET /accounts/profile/ - User profile
+- GET /accounts/profile/edit/ - Edit profile
+- GET /accounts/logout/ - Logout
+- GET /library/ - User library
+- GET /playlist/<id>/ - View playlist
+- GET /api/playlists/ - List playlists
+- POST /api/playlists/ - Create playlist
+- PUT /api/playlists/<id>/ - Update playlist
+- DELETE /api/playlists/<id>/ - Delete playlist
+- POST /api/playlist-songs/<playlist_id>/ - Add song to playlist
+- DELETE /api/playlist-songs/<playlist_id>/<pk>/ - Remove song
+- GET /api/recently-played/ - Get recently played
+- POST /api/recently-played/add/ - Add to recently played
+- GET /api/favorites/ - Get favorite songs
+- POST /api/favorites/ - Add to favorites
+- DELETE /api/favorites/<song_id>/ - Remove from favorites
+
+Deployment (Render)
+--------------------
+1. Set DEBUG=False in settings.py or environment variables
+2. Add render.com domain to ALLOWED_HOSTS
+3. Configure environment variables in Render dashboard
+4. Add gunicorn to requirements.txt
+5. Create a render.yaml file with build and run commands

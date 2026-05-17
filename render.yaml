@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: musicstream
+    env: python
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+      python manage.py migrate
+    startCommand: gunicorn music_Settings.wsgi:application
+    envVars:
+      - key: DEBUG
+        value: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: .onrender.com
+      - key: JAMENDO_CLIENT_ID
+        sync: false
